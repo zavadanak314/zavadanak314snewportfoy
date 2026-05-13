@@ -1,0 +1,29 @@
+{
+  "serviceWorker": {
+    "cache": {
+      "name": "portfoy-v1",
+      "files": [
+        "./",
+        "./index.html",
+        "./manifest.json",
+        "./icon-192.png",
+        "./icon-512.png"
+      ]
+    },
+    "events": {
+      "install": {
+        "description": "Install event - caches all files and skips waiting",
+        "skipWaiting": true
+      },
+      "activate": {
+        "description": "Activate event - cleans up old caches",
+        "claimClients": true
+      },
+      "fetch": {
+        "description": "Fetch event - serves from cache, falls back to network, then to offline page",
+        "strategy": "cache-first-with-network-fallback",
+        "fallback": "./index.html"
+      }
+    }
+  }
+}
