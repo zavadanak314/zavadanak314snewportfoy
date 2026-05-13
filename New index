@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Portfoy">
+<title>Portfoy Terminal</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { background: #000; color: #e0e0e0; font-family: monospace; min-height: 100vh; padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+  input { font-family: inherit; font-size: 13px; }
+  .header { background: #0a0a0a; border-bottom: 1px solid #1a1a1a; padding: 18px 16px 14px; }
+  .h-eye { font-size: 10px; letter-spacing: 3px; color: #444; text-transform: uppercase; }
+  .h-title { font-size: 22px; font-weight: 900; color: #fff; margin-top: 4px; }
+  .h-sub { font-size: 11px; color: #666; margin-top: 2px; }
+  .tabs { display: flex; border-bottom: 1px solid #1a1a1a; background: #080808; position: sticky; top: 0; z-index: 10; }
+  .tab { flex: 1; padding: 14px 0; background: none; border: none; border-bottom: 2px solid transparent; color: #555; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; font-family: monospace; }
+  .tab.active { border-bottom-color: #06d6a0; color: #06d6a0; }
+  .content { padding: 16px; padding-bottom: 60px; }
+  .card { background: #0c0c0c; border: 1px solid #1a1a1a; border-radius: 8px; padding: 12px; margin-bottom: 10px; border-left-width: 3px; border-left-style: solid; border-left-color: #2a9d8f; }
+  .row { display: flex; justify-content: space-between; align-items: center; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .inp { background: #000; color: #fff; border: 1px solid #1a1a1a; padding: 10px; border-radius: 4px; width: 100%; }
+  .inp:focus { outline: none; border-color: #2a9d8f; }
+  .sym { font-size: 14px; font-weight: 900; color: #fff; letter-spacing: 1px; }
+  .sektor { font-size: 10px; color: #555; }
+  .fiyat { font-size: 16px; font-weight: bold; }
+  .tag { font-size: 9px; font-weight: 900; padding: 3px 8px; border-radius: 10px; letter-spacing: 1px; color: #000; }
+  .kpi { padding: 14px; background: #0a1410; border-radius: 8px; margin-bottom: 14px; border: 1px solid #06d6a0; }
+  .kpi-l { font-size: 10px; color: #666; letter-spacing: 2px; text-transform: uppercase; }
+  .kpi-v { font-size: 26px; font-weight: 900; color: #fff; margin-top: 4px; }
+  .res { display: flex; justify-content: space-between; padding: 6px 0; border-top: 1px solid #111; font-size: 11px; margin-top: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; padding: 8px 4px; color: #555; font-size: 10px; letter-spacing: 1px; border-bottom: 1px solid #222; font-weight: normal; }
+  td { padding: 10px 4px; border-bottom: 1px solid #111; }
+  .reset { background: #1a0a0a; color: #e63946; border: 1px solid #e63946; padding: 10px; border-radius: 6px; width: 100%; margin-top: 16px; font-family: monospace; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; }
+  #err { background: #2a0000; color: #ff6b6b; padding: 10px; margin: 10px; border-radius: 4px; font-size: 11px; display: none; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="h-eye">Borsa Terminali</div>
+  <div class="h-title">Portfoy Analizi</div>
+  <div class="h-sub">BIST + NVIDIA</div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" id="t1">Portfoy</button>
+  <button class="tab" id="t2">Fiyatlar</button>
+  <button class="tab" id="t3">Tavsiye</button>
+</div>
+
+<div id="err"></div>
+
+<div class="content">
+  <div id="c1"></div>
+  <div id="c2" style="display:none"></div>
+  <div id="c3" style="display:none"></div>
+</div>
+
+<script>
+try {
+
+var STOCKS = [
+  { sym: 'ZOREN',  fiyat: 3.09,   sektor: 'Enerji',     note: 'Volatil, 3 TL ana destek',                 advice: 'DIKKAT',    color: '#f4a261' },
+  { sym: 'AKFGY',  fiyat: 2.92,   sektor: 'GYO',        note: 'Sikisma fazi, dusuk volatilite',           advice: 'TUT',       color: '#2a9d8f' },
+  { sym: 'JANTS',  fiyat: 17.30,  sektor: 'Sanayi',     note: 'Doviz hassas, ihracat guclu',              advice: 'TUT',       color: '#2a9d8f' },
+  { sym: 'FENER',  fiyat: 3.15,   sektor: 'Spor',       note: 'Sezon performansina bagli',                advice: 'TUT',       color: '#2a9d8f' },
+  { sym: 'ENERY',  fiyat: 9.01,   sektor: 'Enerji',     note: 'Defansif, temettu potansiyeli',            advice: 'TUT',       color: '#2a9d8f' },
+  { sym: 'TRALT',  fiyat: 40.66,  sektor: 'Yatirim',    note: 'Yuksek fiyat, kar realizasyonu olabilir',  advice: 'DIKKAT',    color: '#f4a261' },
+  { sym: 'GARAN',  fiyat: 129.40, sektor: 'Banka',      note: 'Blue-chip, 130 ustu direnc',               advice: 'TUT/EKLE',  color: '#06d6a0' },
+  { sym: 'EFOR',   fiyat: 11.81,  sektor: 'Yatirim',    note: 'Spekulatif kucuk cap',                     advice: 'AZALT',     color: '#e63946' },
+  { sym: 'MOGAN',  fiyat: 15.80,  sektor: 'Enerji',     note: 'Momentum hissesi, RSI takibi sart',        advice: 'DIKKAT',    color: '#f4a261' },
+  { sym: 'EKSUN',  fiyat: 6.07,   sektor: 'Gida',       note: 'Defansif, enflasyon korumasi',             advice: 'TUT',       color: '#2a9d8f' },
+  { sym: 'ENSRI',  fiyat: 12.54,  sektor: 'Tekstil',    note: 'Volatil, momentum',                         advice: 'TUT',       color: '#2a9d8f' },
+  { sym: 'NVIDIA', fiyat: 197.42, sektor: 'Tech (USD)', note: 'AI rallisi, ATH yakini',                   advice: 'TUT',       color: '#76b900' }
+];
+
+var TAG_COLORS = { 'TUT/EKLE': '#06d6a0', 'TUT': '#2a9d8f', 'DIKKAT': '#f4a261', 'AZALT': '#e63946', 'SAT': '#c1121f' };
+
+var KEY = 'portfoy_v2';
+var USDK = 'usdtry_v2';
+
+var positions = {};
+try { positions = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch(e) { positions = {}; }
+var usdTry = parseFloat(localStorage.getItem(USDK)) || 38.5;
+
+for (var i = 0; i < STOCKS.length; i++) {
+  var k = STOCKS[i].sym;
+  if (!positions[k]) positions[k] = { adet: '', maliyet: '' };
+}
+
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(positions)); } catch(e) {}
+}
+
+function fmt(n) {
+  if (n === null || n === undefined || isNaN(n)) return '-';
+  return Number(n).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, function(c) {
+    return ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c];
+  });
+}
+
+function calculate() {
+  var results = [];
+  for (var i = 0; i < STOCKS.length; i++) {
+    var s = STOCKS[i];
+    var pos = positions[s.sym] || { adet: '', maliyet: '' };
+    var adet = parseFloat(pos.adet) || 0;
+    var maliyet = parseFloat(pos.maliyet) || 0;
+    var fiyatTL = s.sym === 'NVIDIA' ? s.fiyat * usdTry : s.fiyat;
+    var maliyetTL = s.sym === 'NVIDIA' ? maliyet * usdTry : maliyet;
+    var value = adet * fiyatTL;
+    var cost = adet * maliyetTL;
+    var pl = value - cost;
+    var plPct = cost > 0 ? (pl / cost) * 100 : 0;
+    results.push({
+      sym: s.sym, sektor: s.sektor, note: s.note, advice: s.advice, color: s.color,
+      fiyat: s.fiyat, fiyatTL: fiyatTL, adet: adet, maliyet: maliyet,
+      value: value, cost: cost, pl: pl, plPct: plPct
+    });
+  }
+  return results;
+}
+
+function renderPortfoy() {
+  var data = calculate();
+  var active = data.filter(function(p) { return p.adet > 0; });
+  var totalVal = 0, totalCost = 0;
+  for (var i = 0; i < active.length; i++) {
+    totalVal += active[i].value;
+    totalCost += active[i].cost;
+  }
+  var totalPL = totalVal - totalCost;
+  var totalPct = totalCost > 0 ? (totalPL / totalCost) * 100 : 0;
+  
+  var html = '';
+  
+  if (active.length > 0) {
+    var c = totalPL >= 0 ? '#06d6a0' : '#e63946';
+    html += '<div class="kpi" style="border-color:' + c + '">';
+    html += '<div class="kpi-l">Toplam Portfoy</div>';
+    html += '<div class="kpi-v">' + fmt(totalVal) + ' TL</div>';
+    html += '<div style="display:flex;gap:14px;margin-top:8px;font-size:11px">';
+    html += '<span style="color:#666">Maliyet: <span style="color:#aaa">' + fmt(totalCost) + ' TL</span></span>';
+    html += '<span style="color:' + c + ';font-weight:bold">' + (totalPL >= 0 ? '+' : '') + fmt(totalPL) + ' TL (' + fmt(totalPct) + '%)</span>';
+    html += '</div></div>';
+  }
+  
+  html += '<div class="card" style="margin-bottom:12px;border-left-color:#2a9d8f">';
+  html += '<div class="row">';
+  html += '<span style="font-size:11px;color:#666;letter-spacing:1px">USD/TRY (NVIDIA)</span>';
+  html += '<input class="inp" style="width:90px;text-align:right;color:#06d6a0;padding:6px 8px" type="number" step="0.1" id="usdInp" value="' + usdTry + '">';
+  html += '</div></div>';
+  
+  html += '<div style="font-size:10px;color:#444;letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase">Adet ve maliyet gir</div>';
+  
+  for (var i = 0; i < data.length; i++) {
+    var p = data[i];
+    var hasPos = p.adet > 0;
+    var plColor = p.pl >= 0 ? '#06d6a0' : '#e63946';
+    html += '<div class="card" style="border-left-color:' + p.color + '">';
+    html += '<div class="row" style="margin-bottom:8px">';
+    html += '<div><div class="sym">' + p.sym + '</div><div class="sektor">' + p.sektor + '</div></div>';
+    html += '<div style="text-align:right">';
+    html += '<div class="fiyat" style="color:' + p.color + '">' + fmt(p.fiyat) + ' ' + (p.sym === 'NVIDIA' ? '$' : 'TL') + '</div>';
+    if (p.sym === 'NVIDIA') html += '<div style="font-size:9px;color:#444">~ ' + fmt(p.fiyatTL) + ' TL</div>';
+    html += '</div></div>';
+    html += '<div class="grid2">';
+    html += '<input class="inp pos-in" type="number" step="any" inputmode="decimal" placeholder="Adet" value="' + escapeHtml(positions[p.sym].adet) + '" data-sym="' + p.sym + '" data-fld="adet">';
+    html += '<input class="inp pos-in" type="number" step="any" inputmode="decimal" placeholder="Maliyet (' + (p.sym === 'NVIDIA' ? '$' : 'TL') + ')" value="' + escapeHtml(positions[p.sym].maliyet) + '" data-sym="' + p.sym + '" data-fld="maliyet">';
+    html += '</div>';
+    if (hasPos) {
+      html += '<div class="res">';
+      html += '<span style="color:#555">Deger: <span style="color:#ccc">' + fmt(p.value) + ' TL</span></span>';
+      html += '<span style="color:' + plColor + ';font-weight:bold">' + (p.pl >= 0 ? '+' : '') + fmt(p.pl) + ' TL (' + fmt(p.plPct) + '%)</span>';
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+  
+  html += '<button class="reset" id="resetBtn">Tum Pozisyonlari Sifirla</button>';
+  
+  document.getElementById('c1').innerHTML = html;
+  attachListeners();
+}
+
+function renderFiyatlar() {
+  var data = calculate();
+  var html = '<div class="card" style="margin-bottom:12px;border-left-color:#2a9d8f"><div style="font-size:10px;color:#444;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">Kapanis Fiyatlari</div><div style="font-size:11px;color:#666">5 Mayis 2026</div></div>';
+  html += '<table><thead><tr><th>SEMBOL</th><th>SEKTOR</th><th style="text-align:right">FIYAT</th></tr></thead><tbody>';
+  for (var i = 0; i < data.length; i++) {
+    var p = data[i];
+    html += '<tr><td style="color:#fff;font-weight:bold">' + p.sym + '</td><td style="color:#666;font-size:11px">' + p.sektor + '</td><td style="color:' + p.color + ';text-align:right;font-weight:bold">' + fmt(p.fiyat) + ' ' + (p.sym === 'NVIDIA' ? '$' : 'TL') + '</td></tr>';
+  }
+  html += '</tbody></table>';
+  document.getElementById('c2').innerHTML = html;
+}
+
+function renderTavsiye() {
+  var data = calculate();
+  var html = '';
+  for (var i = 0; i < data.length; i++) {
+    var p = data[i];
+    var tc = TAG_COLORS[p.advice] || '#666';
+    html += '<div class="card" style="border-left-color:' + tc + '">';
+    html += '<div class="row" style="margin-bottom:6px">';
+    html += '<div style="display:flex;align-items:center;gap:8px"><div style="font-size:13px;font-weight:900;color:#fff">' + p.sym + '</div><div style="font-size:10px;color:#444">' + fmt(p.fiyat) + (p.sym === 'NVIDIA' ? '$' : 'TL') + '</div></div>';
+    html += '<div class="tag" style="background:' + tc + '">' + p.advice + '</div>';
+    html += '</div>';
+    html += '<div style="font-size:11px;color:#888;line-height:1.5">' + p.note + '</div>';
+    html += '</div>';
+  }
+  html += '<div class="card" style="background:#0a0a0a;margin-top:16px;border-left-color:#444"><div style="font-size:10px;color:#f4a261;letter-spacing:1.5px;margin-bottom:6px">FERAGATNAME</div><div style="font-size:10px;color:#555;line-height:1.6">Bu yorumlar yatirim tavsiyesi degildir. Karari sen ver.</div></div>';
+  document.getElementById('c3').innerHTML = html;
+}
+
+function attachListeners() {
+  var inputs = document.querySelectorAll('.pos-in');
+  for (var i = 0; i < inputs.length; i++) {
+    inputs[i].addEventListener('input', function(e) {
+      var sym = e.target.getAttribute('data-sym');
+      var fld = e.target.getAttribute('data-fld');
+      positions[sym][fld] = e.target.value;
+      save();
+      var scrollY = window.scrollY;
+      var caret = e.target.selectionStart;
+      renderPortfoy();
+      var newInp = document.querySelector('input[data-sym="' + sym + '"][data-fld="' + fld + '"]');
+      if (newInp) {
+        newInp.focus();
+        try { newInp.setSelectionRange(caret, caret); } catch(e2) {}
+      }
+      window.scrollTo(0, scrollY);
+    });
+  }
+  
+  var usdInp = document.getElementById('usdInp');
+  if (usdInp) {
+    usdInp.addEventListener('input', function(e) {
+      usdTry = parseFloat(e.target.value) || 38.5;
+      try { localStorage.setItem(USDK, usdTry); } catch(e2) {}
+      renderPortfoy();
+    });
+  }
+  
+  var rb = document.getElementById('resetBtn');
+  if (rb) {
+    rb.addEventListener('click', function() {
+      if (confirm('Tum pozisyonlar silinsin mi?')) {
+        try { localStorage.removeItem(KEY); } catch(e) {}
+        location.reload();
+      }
+    });
+  }
+}
+
+function showTab(n) {
+  document.getElementById('t1').classList.remove('active');
+  document.getElementById('t2').classList.remove('active');
+  document.getElementById('t3').classList.remove('active');
+  document.getElementById('t' + n).classList.add('active');
+  document.getElementById('c1').style.display = 'none';
+  document.getElementById('c2').style.display = 'none';
+  document.getElementById('c3').style.display = 'none';
+  document.getElementById('c' + n).style.display = 'block';
+}
+document.getElementById('t1').addEventListener('click', function() { showTab(1); });
+document.getElementById('t2').addEventListener('click', function() { showTab(2); });
+document.getElementById('t3').addEventListener('click', function() { showTab(3); });
+
+renderPortfoy();
+renderFiyatlar();
+renderTavsiye();
+
+} catch(err) {
+  var el = document.getElementById('err');
+  if (el) {
+    el.style.display = 'block';
+    el.textContent = 'HATA: ' + (err && err.message ? err.message : err);
+  }
+}
+</script>
+
+</body>
+</html>
